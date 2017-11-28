@@ -1,0 +1,34 @@
+Setting up ArduPilot, Mission Planner, MAVProxy, SITL
+
+- Clone ardupilot: git clone https://github.com/ArduPilot/ardupilot.git
+- Ensure g++-4.9, cmake, and gcc-arm-eabi-none (gcc-arm-embedded) are installed
+- Install prerequisites (Linux): ./ardupilot/Tools/scripts/install-prereqs-ubuntu.sh
+- Go into ArduPilot and run waf for the given board: cd ardupilot, ./waf configure --board sitl
+- Compile for the target vehicle: ./waf plane
+
+Running the copter
+- cd ./ardupilot/build/sitl/bin
+- ./arducopter --model QUAD --home 30.445969, -84.299795 (this is the parking lot behind Love)
+// TODO: Find a good model for the plane.  This works otherwise
+
+Running the Copter in SITL
+- Add <ardupilot home>/Tools/autotest to Path
+- Go to vehicle directory
+- make sitl
+- ./arducopter --model QUAD --home 30.445969, -84.299795 (this is the parking lot behind Love)
+// - ./sim_vehicle.py -w -v ArduCopter
+
+Connecting to MAVProxy
+- mavproxy.py --master=tcp:127.0.0.1:5762 --map --console
+- mode GUIDED
+- output add 127.0.0.1:14550
+
+Connecting to Mission Planner
+- Start Mission Planner, skip the Altitude Angel and wizard steps
+- With a vehicle RUNNING, check UDP and click Connect to connect to 127.0.0.1:14550
+
+Running multiple instances of ArduCopter in SITL
+- ./arducopter --model QUAD --home 30.445969,-84.299795,32,0 -I 0 - MAVLINK port 5762
+- ./arducopter --model QUAD --home 30.445970,-84.299790,32,0 -I 1 - MAVLINK port 5772
+
+From here, you're connected and can send commands from either Mission Planner or MAVProxy
