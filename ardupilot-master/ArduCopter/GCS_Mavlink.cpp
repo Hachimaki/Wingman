@@ -1309,6 +1309,25 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             }
             break;
 
+// JAC - BEGIN CPD PROJECT
+
+        case MAV_CMD_DO_DRONE_CONNECT: {
+            // param1   ten thousands of port
+            // param2   thousands of port
+            // param3   hundreds of port
+            // param4   tens of port
+            // x        ones of port
+            result = MAV_RESULT_ACCEPTED;
+            break;
+        }
+
+        case MAV_CMD_DO_DRONE_DISCONNECT: {
+            result = MAV_RESULT_ACCEPTED;
+            break;
+        }
+
+// JAC - END CPD PROJECT
+
         default:
             result = handle_command_long_message(packet);
             break;
@@ -1767,11 +1786,6 @@ AP_Mission *GCS_MAVLINK_Copter::get_mission()
 Compass *GCS_MAVLINK_Copter::get_compass() const
 {
     return &copter.compass;
-}
-
-AP_GPS *GCS_MAVLINK_Copter::get_gps() const
-{
-    return &copter.gps;
 }
 
 AP_Camera *GCS_MAVLINK_Copter::get_camera() const

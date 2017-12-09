@@ -813,6 +813,21 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         cmd.content.winch.release_rate = packet.param4; // release rate in meters/second
         break;
 
+// JAC - BEGIN CPD TERM PROJECT
+    case MAV_CMD_DO_DRONE_CONNECT:{                      // MAV ID: 43000
+            int first = (int)packet.param1;
+            int second = (int)packet.param2;
+            int third = (int)packet.param3;
+            int fourth = (int)packet.param4;
+            int fifth = (int)packet.x;                           // USUALLY this would be an x coordinate, however, since we're not sending location data and instead sending a 5 digit port, we'll make use of it                     
+            cmd.content.connection.port = (first * 10000) + (second  *  1000) + (third * 100) + (fourth * 10) + (fifth);    // port number
+        }break;
+
+    case MAV_CMD_DO_DRONE_DISCONNECT:                   // MAV ID: 43001
+        break;
+
+// JAC - END CPD TERM PROJECT
+
     default:
         // unrecognised command
         return MAV_MISSION_UNSUPPORTED;

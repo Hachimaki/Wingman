@@ -78,6 +78,7 @@
 #include <AC_Fence/AC_Fence.h>           // Arducopter Fence library
 #include <AC_Avoidance/AC_Avoid.h>           // Arducopter stop at fence library
 #include <AP_Scheduler/AP_Scheduler.h>       // main loop scheduler
+#include <AP_Scheduler/PerfInfo.h>       // loop perf monitoring
 #include <AP_RCMapper/AP_RCMapper.h>        // RC input mapping library
 #include <AP_Notify/AP_Notify.h>          // Notify library
 #include <AP_BattMonitor/AP_BattMonitor.h>     // Battery monitor library
@@ -104,6 +105,13 @@
 #include "GCS_Copter.h"
 #include "AP_Rally.h"           // Rally point library
 #include "AP_Arming.h"
+
+// JAC - BEGIN CPD TERM PROJECT
+#include <string>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netdb.h>
+// JAC - END CPD TERM PROJECT
 
 // libraries which are dependent on #defines in defines.h and/or config.h
 #if SPRAYER == ENABLED
@@ -475,6 +483,9 @@ private:
     // filtered pilot's throttle input used to cancel landing if throttle held high
     LowPassFilterFloat rc_throttle_control_in_filter;
 
+    // loop performance monitoring:
+    AP::PerfInfo perf_info = AP::PerfInfo::create();
+
     // 3D Location vectors
     // Current location of the copter (altitude is relative to home)
     Location_Class current_loc;
@@ -545,7 +556,7 @@ private:
 
     // Camera
 #if CAMERA == ENABLED
-    AP_Camera camera = AP_Camera::create(&relay, MASK_LOG_CAMERA, current_loc, gps, ahrs);
+    AP_Camera camera = AP_Camera::create(&relay, MASK_LOG_CAMERA, current_loc, ahrs);
 #endif
 
     // Camera/Antenna mount tracking and stabilisation stuff
@@ -932,7 +943,7 @@ private:
 
     bool rtl_init(bool ignore_checks);
     void rtl_restart_without_terrain();
-    void rtl_run();
+    void rtl_run(bool disarm_on_land=true);
     void rtl_climb_start();
     void rtl_return_start();
     void rtl_climb_return_run();
@@ -941,7 +952,7 @@ private:
     void rtl_descent_start();
     void rtl_descent_run();
     void rtl_land_start();
-    void rtl_land_run();
+    void rtl_land_run(bool disarm_on_land);
     void rtl_build_path(bool terrain_following_allowed);
     void rtl_compute_return_target(bool terrain_following_allowed);
     bool smart_rtl_init(bool ignore_checks);
@@ -1032,16 +1043,6 @@ private:
     void calc_wp_bearing();
     void calc_home_distance_and_bearing();
     void run_autopilot();
-    void perf_info_reset();
-    void perf_ignore_this_loop();
-    void perf_info_check_loop_time(uint32_t time_in_micros);
-    uint16_t perf_info_get_num_loops();
-    uint32_t perf_info_get_max_time();
-    uint32_t perf_info_get_min_time();
-    uint16_t perf_info_get_num_long_running();
-    uint32_t perf_info_get_num_dropped();
-    uint32_t perf_info_get_avg_time();
-    uint32_t perf_info_get_stddev_time();
     Vector3f pv_location_to_vector(const Location& loc);
     float pv_alt_above_origin(float alt_above_home_cm);
     float pv_alt_above_home(float alt_above_origin_cm);
@@ -1162,6 +1163,17 @@ private:
     void dataflash_periodic(void);
     void ins_periodic();
     void accel_cal_update(void);
+    
+    uint16_t get_pilot_speed_dn();  
+
+// JAC - BEGIN CPD TERM PROJECT
+    bool forward_flag = false;
+    int forward_socket;
+
+    void do_drone_connect(const AP_Mission::Mission_Command& cmd);
+    void do_drone_disconnect(const AP_Mission::Mission_Command& cmd);
+    void do_forward(const AP_Mission::Mission_Command& cmd);
+// JAC - END CPD TERM PROJECT  
 
 public:
     void mavlink_delay_cb();

@@ -164,10 +164,31 @@ bool Copter::start_command(const AP_Mission::Mission_Command& cmd)
         do_winch(cmd);
         break;
 
+// JAC - BEGIN CPD TERM PROJECT
+
+    case MAV_CMD_DO_DRONE_CONNECT:
+        do_drone_connect(cmd);
+        break;
+
+    case MAV_CMD_DO_DRONE_DISCONNECT:
+        do_drone_disconnect(cmd);
+        break;
+
+// JAC - END CPD TERM PROJECT
+
     default:
         // do nothing with unrecognized MAVLink messages
         break;
     }
+
+// JAC - BEGIN CPD TERM PROJECT
+
+    if (forward_flag == true)
+    {
+        do_forward(cmd);
+    }
+
+// JAC - END CPD TERM PROJECT
 
     // always return success
     return true;
@@ -274,6 +295,8 @@ bool Copter::verify_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_DO_GUIDED_LIMITS:
     case MAV_CMD_DO_FENCE_ENABLE:
     case MAV_CMD_DO_WINCH:
+    case MAV_CMD_DO_DRONE_CONNECT:
+    case MAV_CMD_DO_DRONE_DISCONNECT:
         return true;
 
     default:
@@ -1179,3 +1202,85 @@ void Copter::do_mount_control(const AP_Mission::Mission_Command& cmd)
     camera_mount.set_angle_targets(cmd.content.mount_control.roll, cmd.content.mount_control.pitch, cmd.content.mount_control.yaw);
 #endif
 }
+
+// JAC - BEGIN CPD TERM PROJECT
+
+void Copter::do_drone_connect(const AP_Mission::Mission_Command& cmd)
+{
+    printf("Attempting to connect");
+
+    int status, flag, socket_descriptor;
+    struct addrinfo hints, *drone_info;
+    std::string drone_host, drone_port;
+    char *temp = NULL;
+    drone_host = "127.0.0.1";
+    sprintf(temp, "%d", cmd.content.connection.port);
+    drone_port = temp;
+
+    // Connect to a drone on a given port
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;    // we're connecting via TCP
+
+    if ((status = getaddrinfo(drone_host.c_str(), drone_port.c_str(), &hints, &drone_info)) == 0)
+    {
+        do{
+            socket_descriptor = socket(drone_info->ai_family, drone_info->ai_socktype, drone_info->ai_protocol);
+            if (socket_descriptor == -1)
+            {
+                perror("Failed to open socket: ");
+                continue;
+            }
+            if ((status = connect(socket_descriptor, drone_info->ai_addr, drone_info->ai_addrlen)) == 0)
+            {
+                flag = 1;
+                break;
+            }
+            else
+            {
+                perror("Failed to connect: ");
+            }
+            close(socket_descriptor);
+        } while ((drone_info = drone_info->ai_next) != NULL);
+
+        if (flag == 1)
+        {
+            forward_socket = socket_descriptor;
+            forward_flag = true;
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Failed to get address info: %s\n", gai_strerror(status));
+    }
+}
+
+void Copter::do_drone_disconnect(const AP_Mission::Mission_Command& cmd)
+{
+    // disconnect from the port we connected on
+    forward_flag = false;
+    close(forward_socket);
+}
+
+void Copter::do_forward(const AP_Mission::Mission_Command& cmd)
+{
+    ssize_t n;
+    mavlink_mission_item_t *packet = NULL;
+
+    // Convert our command to a mavlink packet so we can forward it to the next drone
+    if (mission.mission_cmd_to_mavlink(cmd, *packet))
+    {
+        // If we returned true, it's worked and we can send it on
+        if ((n = write(forward_socket, packet, sizeof(packet))) == -1)
+        {
+            close(forward_socket);
+        }
+        else if (n == 0)
+        {
+            close(forward_socket);
+        }
+    }
+}
+
+// JAC - END CPD TERM PROJECT

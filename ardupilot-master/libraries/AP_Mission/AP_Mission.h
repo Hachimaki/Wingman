@@ -192,6 +192,14 @@ public:
         float release_rate;     // release rate in meters/second
     };
 
+// JAC - BEGIN CPD PROJECT
+
+    struct PACKED Connect_Command {
+        int port;               // port of the instance we're trying to connect to
+    };
+
+// JAC- END CPD PROJECT
+
     union PACKED Content {
         // jump structure
         Jump_Command jump;
@@ -262,6 +270,12 @@ public:
         // raw bytes, for reading/writing to eeprom. Note that only 10 bytes are available
         // if a 16 bit command ID is used
         uint8_t bytes[12];
+
+// JAC - BEGIN CPD TERM PROJECT
+
+        Connect_Command connection;
+
+// JAC - END CPD TERM PROJECT
     };
 
     // command structure
